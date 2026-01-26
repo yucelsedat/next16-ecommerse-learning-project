@@ -8,7 +8,7 @@ export default function AdminLayout({
 }>) {
 
   return (
-    <>
+    <div className='min-h-screen box-border'>
       <Nav>
         <NavLink href={'/admin'}>Dashboard</NavLink>
         <NavLink href={'/admin/products'}>Products</NavLink>
@@ -16,8 +16,8 @@ export default function AdminLayout({
         <NavLink href={'/admin/users'}>Customers</NavLink>
         <NavLink href={'/admin/orders'}>Sales</NavLink>
       </Nav>
-      <div className='container my-6'>{children}</div>
-    </>
+      <div className='container my-6 mx-auto'>{children}</div>
+    </div>
   )
 }
   
