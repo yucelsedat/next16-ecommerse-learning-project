@@ -2,13 +2,12 @@ import PageHeader from '../_components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import ProductsTable from './_components/products-table';
+import { Suspense } from 'react';
 
 
 export default function ProductsPage() {
     
 
-  //BURADA REACT SUSPENSE KULLANMAYA ÇALIŞ
-    
    return (
     <>
       <div className='flex justify-between items-center gap-4'>
@@ -17,7 +16,9 @@ export default function ProductsPage() {
           <Link href={`/admin/products/new`}>add new</Link>
         </Button>
       </div>
-      <ProductsTable />
+      <Suspense fallback={<Loader />} >
+        <ProductsTable />
+      </Suspense>
     </>
   ) 
 }
