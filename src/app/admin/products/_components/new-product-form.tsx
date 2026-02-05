@@ -1,8 +1,8 @@
 'use client'
 
 import { cn } from "@/lib/utils"
-import { useRef, useState, useTransition } from "react"
-import { addProduct } from '../../_actions/products'
+import { useActionState, useEffect, useRef, useState, useTransition } from "react"
+import { ActionState, addProduct } from '../../_actions/products'
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/formatters"
@@ -10,9 +10,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Image, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
+import { error } from "console"
+
+const initialState:ActionState = {}
 
 export default function NewProductForm() {
-  
+
+  const router = useRouter()
+
+  const [state, formAction, isActionPending] = useActionState(addProduct, initialState)
+
+  useEffect(() => {
+    if (state.success) {
+      router.push('/admin/products')
+    }
+  }, [state.success, router])  
+
   const [priceInCents, setPriceInCents] = useState<number>()
   const [uploadProgress, setUploadProgress] = useState<number>(15)
   const [fileName, setFileName] = useState<string>('Click to upload')
@@ -33,7 +47,7 @@ export default function NewProductForm() {
   }
 
   return (
-    <form action={addProduct} className="w-2/3 mx-auto">
+    <form action={formAction} className="w-2/3 mx-auto">
       {/* GRID LAYOUT */}
       <div className="grid grid-cols-3">
         {/* flex-1 */}
@@ -62,9 +76,9 @@ export default function NewProductForm() {
                           ref={fileRef} 
                           className='hidden' 
                           type="file" 
-                          name="img" 
+                          name="image" 
                           onChange={handleChange}
-                          required
+                          // required
                         />
                       </div>
                 }
@@ -91,15 +105,21 @@ export default function NewProductForm() {
               {formatCurrency((priceInCents || 0) / 100)}
             </div>
           </div>
-          {/* DESC & BUTTON  */}
+          {/* DESCRIPTION */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id='description' name='description' required />
           </div>
         </div>
       </div> 
-      <div className="grid my-16">
-        <Button className="place-self-center">Kayıt Et</Button>
+      <div className="grid mt-6 space-y-2">
+        <Button className="place-self-center" disabled={isActionPending}>
+        {isActionPending ? 'Kaydediliyor…' : 'Ürün Ekle'}
+        </Button>
+        <span className="place-self-center">
+          {/* {JSON.stringify(state)} */}
+          {JSON.stringify(state?.message)??JSON.stringify(state?.errors?.image[0])}
+        </span>
       </div>
     </form>
   )
