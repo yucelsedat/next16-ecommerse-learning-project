@@ -43,3 +43,6 @@ next-env.d.ts
 /generated/prisma
 *.db
 *.db-journal
+
+#folders
+/public/products
