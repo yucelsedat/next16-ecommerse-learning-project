@@ -4,6 +4,8 @@ import { z } from 'zod'
 import fs from 'fs/promises'
 import path from 'path'
 import prisma from '@/lib/prisma'
+import { notFound } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 export type ActionState = {
   success?: boolean
@@ -73,6 +75,8 @@ export async function addProduct(
       },
     })
 
+    revalidatePath('/admin/products')
+
     // 4️⃣ Success
     return { success: true }
   } catch (error) {
@@ -83,3 +87,28 @@ export async function addProduct(
     }
   }
 }
+
+
+export async function toggleProductAvailability(id: string, isAvailableForPurchase: boolean) {
+  await prisma.product.update({ where: { id }, data: {
+    isAvailableForPurchase
+  }})
+  revalidatePath('/admin/products')
+} 
+
+export async function deleteProduct(id: string) {
+  const product = await prisma.product.delete({ where: { id }})
+
+  if( product == null ) return notFound()
+  
+  const imageFsPath = path.join(
+    process.cwd(),
+    'public',
+    product.imgPath
+  )
+
+  await fs.unlink(imageFsPath)
+
+  revalidatePath('/admin/products')
+
+} 

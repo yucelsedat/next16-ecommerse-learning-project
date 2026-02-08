@@ -49,9 +49,10 @@ export default function NewProductForm() {
       handleFileChange(e.target.files[0])
     }
   }
-
+  
+  
   const handleFileChange = (file: File) => {
-
+    
     const reader = new FileReader()
 
     setUploading(true)
@@ -90,6 +91,14 @@ export default function NewProductForm() {
           className='relative h-80 flex-1 mx-auto w-2/3 rounded-xl bg-gray-900/5 px-2 py-auto ring-1 ring-inset ring-gray-900/10 lg:rounded-2xl flex justify-center flex-col items-center hover:bg-gray-900/8 hover:cursor-pointer' 
           onClick={handleClick}
         >
+        <input 
+          ref={fileRef} 
+          className='hidden' 
+          type="file" 
+          name="image" 
+          onChange={handleChange}
+          // required
+        />
         {preview
           ? 
             <div>
@@ -98,14 +107,6 @@ export default function NewProductForm() {
               alt="Preview"
               className="w-full rounded-md border"
               /> 
-              <input 
-                ref={fileRef} 
-                className='hidden' 
-                type="file" 
-                name="image" 
-                onChange={handleChange}
-                // required
-              />
             </div>
           : (
             
@@ -126,14 +127,6 @@ export default function NewProductForm() {
                     </div> 
                     : <div >
                       {fileName}
-                      <input 
-                        ref={fileRef} 
-                        className='hidden' 
-                        type="file" 
-                        name="image" 
-                        onChange={handleChange}
-                        // required
-                      />
                     </div>
               }
 
@@ -174,8 +167,10 @@ export default function NewProductForm() {
         {isActionPending ? 'Kaydediliyor…' : 'Ürün Ekle'}
         </Button>
         <span className="place-self-center text-red-500">
-          {/* {JSON.stringify(state)} */}
           {JSON.stringify(state?.message)??JSON.stringify(state?.errors?.image[0])}
+        </span>
+        <span className="place-self-center text-gray-500">
+          {(fileName != 'Click to upload') && fileName}
         </span>
       </div>
     </form>
