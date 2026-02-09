@@ -6,6 +6,7 @@ import path from 'path'
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { Prisma } from '../../../../generated/prisma/client'
 
 export type ActionState = {
   success?: boolean
@@ -82,6 +83,80 @@ export async function addProduct(
   } catch (error) {
     console.error(error)
 
+    return {
+      message: 'Ürün kaydedilirken sunucu hatası oluştu.',
+    }
+  }
+}
+
+const editSchema = addSchema.extend({
+  image: z.preprocess(
+    (value) => (value instanceof File && value.size === 0 ? undefined : value),
+    imageSchema.optional()
+  ),
+})
+
+export async function updateProduct( 
+  id: string, 
+  prevState: ActionState, 
+  formData: FormData
+): Promise<ActionState> {
+  
+  console.log(formData)
+  const parsed = editSchema.safeParse(Object.fromEntries(formData.entries()))
+
+  if( !parsed.success ) {
+    //NODE: flatten() deprecate olmuş bunu düzelt
+    return {
+      errors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  const data = parsed.data
+  const product = await prisma.product.findUnique({ where: { id }})
+
+  if( product == null ) return notFound()
+
+    // img file değiştirilmiş ise eskisini sil yenisini ekle
+  try {
+    let imagePublicPath = product.imgPath
+    if( data.image != null && data.image.size > 0 ) {
+  
+      const imageFsPath = path.join(
+        process.cwd(),
+        'public',
+        product.imgPath
+      )
+    
+      await fs.unlink(imageFsPath)
+  
+      const imageName = `${crypto.randomUUID()}-${data.image.name}`
+      imagePublicPath = `/products/${imageName}`
+  
+      const newImageFsPath = path.join(
+        process.cwd(),
+        'public',
+        imagePublicPath
+      )
+  
+      await fs.writeFile(newImageFsPath, Buffer.from(await data.image.arrayBuffer()))
+    }
+  
+    await prisma.product.update({ 
+      where: { id }, 
+      data: {
+      name: data.name,
+      description: data.description,
+      priceInCents: data.priceInCents,
+      imgPath: imagePublicPath
+    }})
+
+    revalidatePath('/admin/products')
+
+    return { success: true}
+
+  } catch (error) {
+    console.error(error)
     return {
       message: 'Ürün kaydedilirken sunucu hatası oluştu.',
     }
