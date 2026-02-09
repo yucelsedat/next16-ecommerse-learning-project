@@ -4,6 +4,7 @@ import { formatCurrency, formatNumber } from '@/lib/formatters'
 import prisma from '@/lib/prisma'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
+import { ActiveToggleDropdownItem, DeleteDropdownItem } from './product-form-actions'
 
 
 
@@ -48,11 +49,11 @@ export default async function ProductsTable() {
               {product.isAvailableForPurchase?
                 <>
                   <span className='sr-only'>Available</span>
-                  <CheckCircle2/>
+                  <CheckCircle2 className='stroke-green-500'/>
                 </> :
                 <>
                   <span className='sr-only'>Unavailable</span>
-                  <XCircle/>
+                  <XCircle className='stroke-destructive'/>
                 </> 
               }
             </TableCell>
@@ -76,9 +77,9 @@ export default async function ProductsTable() {
                       Edit  
                     </Link>
                   </DropdownMenuItem>
-                  {/* <ActiveToggleDropdownItem id={product.id} isAvailableForPurchase={product.isAvailableForPurchase} /> */}
+                  <ActiveToggleDropdownItem id={product.id} isAvailableForPurchase={product.isAvailableForPurchase} />
                   <DropdownMenuSeparator />
-                  {/* <DeleteDropdownItem id={product.id} disabled={ product._count.orders > 0} /> */}
+                  <DeleteDropdownItem id={product.id} disabled={ product._count.orders > 0} />
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>
