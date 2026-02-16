@@ -20,6 +20,28 @@ model Product {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
   orders Order[]
+  categories ProductCategory[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  ProductCategory[]
+}
+
+
+model ProductCategory {
+  productId  String
+  categoryId String
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
 }
 
 model User {

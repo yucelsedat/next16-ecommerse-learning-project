@@ -6,7 +6,6 @@ import path from 'path'
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { Prisma } from '../../../../generated/prisma/client'
 
 export type ActionState = {
   success?: boolean
@@ -15,17 +14,18 @@ export type ActionState = {
 }
 
 const imageSchema = z
-  .instanceof(File, { message: 'Lütfen bir resim yükleyiniz.' })
-  .refine((file) => file.size > 0, 'Dosya boş olamaz.')
+  .instanceof(File, { message: 'Lutfen bir resim yukleyiniz.' })
+  .refine((file) => file.size > 0, 'Dosya bos olamaz.')
   .refine(
     (file) => (file.type.endsWith('jpg') || file.type.endsWith('jpeg') || file.type.endsWith('png')),
-    'Lütfen PNG, JPG veya JPEG uzantılı dosya yükleyin.'
+    'Lutfen PNG, JPG veya JPEG uzantili dosya yukleyin.'
   )
 
 const addSchema = z.object({
-  name: z.string().min(1, 'İsim gereklidir'),
-  description: z.string().min(5, 'Açıklama en az 5 karakter olmalıdır'),
-  priceInCents: z.coerce.number().int().min(1, 'Geçerli bir fiyat girin'),
+  name: z.string().min(1, 'Isim gereklidir'),
+  description: z.string().min(5, 'Aciklama en az 5 karakter olmali'),
+  priceInCents: z.coerce.number().int().min(1, 'Gecerli bir fiyat girin'),
+  categoryId: z.string().min(1, 'Kategori secimi gereklidir'),
   image: imageSchema,
 })
 
@@ -33,58 +33,50 @@ export async function addProduct(
   prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  
   const parsed = addSchema.safeParse({
     name: formData.get('name'),
     description: formData.get('description'),
     priceInCents: formData.get('priceInCents'),
+    categoryId: formData.get('categoryId'),
     image: formData.get('image'),
   })
 
-  // 1️⃣ Validation error
   if (!parsed.success) {
     return {
       errors: parsed.error.flatten().fieldErrors,
     }
   }
 
-  const { name, description, priceInCents, image } = parsed.data
+  const { name, description, priceInCents, categoryId, image } = parsed.data
 
   const imageName = `${crypto.randomUUID()}-${image.name}`
   const imagePublicPath = `/products/${imageName}`
-  const imageFsPath = path.join(
-    process.cwd(),
-    'public',
-    imagePublicPath
-  )
+  const imageFsPath = path.join(process.cwd(), 'public', imagePublicPath)
 
   try {
-    // 2️⃣ File system
     await fs.mkdir(path.dirname(imageFsPath), { recursive: true })
-    await fs.writeFile(
-      imageFsPath,
-      Buffer.from(await image.arrayBuffer())
-    )
+    await fs.writeFile(imageFsPath, Buffer.from(await image.arrayBuffer()))
 
-    // 3️⃣ Database
     await prisma.product.create({
       data: {
         name,
         description,
         priceInCents,
         imgPath: imagePublicPath,
+        categories: {
+          create: { categoryId },
+        },
       },
     })
 
     revalidatePath('/admin/products')
 
-    // 4️⃣ Success
     return { success: true }
   } catch (error) {
     console.error(error)
 
     return {
-      message: 'Ürün kaydedilirken sunucu hatası oluştu.',
+      message: 'Urun kaydedilirken sunucu hatasi olustu.',
     }
   }
 }
@@ -96,94 +88,83 @@ const editSchema = addSchema.extend({
   ),
 })
 
-export async function updateProduct( 
-  id: string, 
-  prevState: ActionState, 
+export async function updateProduct(
+  id: string,
+  prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  
-  console.log(formData)
   const parsed = editSchema.safeParse(Object.fromEntries(formData.entries()))
 
-  if( !parsed.success ) {
-    //NODE: flatten() deprecate olmuş bunu düzelt
+  if (!parsed.success) {
     return {
       errors: parsed.error.flatten().fieldErrors,
     }
   }
 
   const data = parsed.data
-  const product = await prisma.product.findUnique({ where: { id }})
+  const product = await prisma.product.findUnique({ where: { id } })
 
-  if( product == null ) return notFound()
+  if (product == null) return notFound()
 
-    // img file değiştirilmiş ise eskisini sil yenisini ekle
   try {
     let imagePublicPath = product.imgPath
-    if( data.image != null && data.image.size > 0 ) {
-  
-      const imageFsPath = path.join(
-        process.cwd(),
-        'public',
-        product.imgPath
-      )
-    
+
+    if (data.image != null && data.image.size > 0) {
+      const imageFsPath = path.join(process.cwd(), 'public', product.imgPath)
       await fs.unlink(imageFsPath)
-  
+
       const imageName = `${crypto.randomUUID()}-${data.image.name}`
       imagePublicPath = `/products/${imageName}`
-  
-      const newImageFsPath = path.join(
-        process.cwd(),
-        'public',
-        imagePublicPath
-      )
-  
+
+      const newImageFsPath = path.join(process.cwd(), 'public', imagePublicPath)
       await fs.writeFile(newImageFsPath, Buffer.from(await data.image.arrayBuffer()))
     }
-  
-    await prisma.product.update({ 
-      where: { id }, 
+
+    await prisma.product.update({
+      where: { id },
       data: {
-      name: data.name,
-      description: data.description,
-      priceInCents: data.priceInCents,
-      imgPath: imagePublicPath
-    }})
+        name: data.name,
+        description: data.description,
+        priceInCents: data.priceInCents,
+        imgPath: imagePublicPath,
+        categories: {
+          deleteMany: {},
+          create: {
+            categoryId: data.categoryId,
+          },
+        },
+      },
+    })
 
     revalidatePath('/admin/products')
 
-    return { success: true}
-
+    return { success: true }
   } catch (error) {
     console.error(error)
     return {
-      message: 'Ürün kaydedilirken sunucu hatası oluştu.',
+      message: 'Urun kaydedilirken sunucu hatasi olustu.',
     }
   }
 }
 
-
 export async function toggleProductAvailability(id: string, isAvailableForPurchase: boolean) {
-  await prisma.product.update({ where: { id }, data: {
-    isAvailableForPurchase
-  }})
+  await prisma.product.update({
+    where: { id },
+    data: {
+      isAvailableForPurchase,
+    },
+  })
   revalidatePath('/admin/products')
-} 
+}
 
 export async function deleteProduct(id: string) {
-  const product = await prisma.product.delete({ where: { id }})
+  const product = await prisma.product.delete({ where: { id } })
 
-  if( product == null ) return notFound()
-  
-  const imageFsPath = path.join(
-    process.cwd(),
-    'public',
-    product.imgPath
-  )
+  if (product == null) return notFound()
+
+  const imageFsPath = path.join(process.cwd(), 'public', product.imgPath)
 
   await fs.unlink(imageFsPath)
 
   revalidatePath('/admin/products')
-
-} 
+}
