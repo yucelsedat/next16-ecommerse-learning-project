@@ -4,7 +4,7 @@ import { formatCurrency, formatNumber } from '@/lib/formatters'
 import prisma from '@/lib/prisma'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
-import { ActiveToggleDropdownItem, DeleteDropdownItem } from './product-form-actions'
+import { ActiveToggleDropdownItem, DeleteDropdownItem } from './products-table-actions'
 
 
 
@@ -15,6 +15,15 @@ export default async function ProductsTable() {
       id: true,
       name: true, 
       priceInCents: true,
+      categories: {
+        select: {
+          category: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
       isAvailableForPurchase: true,
       _count: { select: { orders: true}},
     },
@@ -35,6 +44,7 @@ export default async function ProductsTable() {
             <span className='sr-only'>Avaible For Purchase</span>
           </TableHead>
           <TableHead>Name</TableHead>
+          <TableHead>Category</TableHead>
           <TableHead>Price</TableHead>
           <TableHead>Orders</TableHead>
           <TableHead className='w-0'>
@@ -58,6 +68,9 @@ export default async function ProductsTable() {
               }
             </TableCell>
             <TableCell>{product.name}</TableCell>
+            <TableCell>
+              {product.categories.map((productCategory) => productCategory.category.name).join(', ') || '-'}
+            </TableCell>
             <TableCell>{formatCurrency(product.priceInCents / 100)}</TableCell>
             <TableCell>{formatNumber(product._count.orders)}</TableCell>
             <TableCell>

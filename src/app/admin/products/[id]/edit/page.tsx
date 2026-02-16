@@ -17,16 +17,36 @@ export default async function EditProductPage({ params }: Props) {
     notFound()
   }
 
-  const product = await prisma.product.findUnique({ where: { id }})
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      priceInCents: true,
+      description: true,
+      imgPath: true,
+      categories: {
+        select: { categoryId: true },
+      },
+    },
+  })
 
   if (!product) {
     notFound()
   }
+
+  const categories = await prisma.category.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: 'asc' },
+  })
   
   return (
     <>
       <PageHeader>Edit Product</PageHeader> 
-      <NewProductForm product={product} />
+      <NewProductForm product={product} categories={categories} />
     </>
   )
 }
